@@ -1,4 +1,4 @@
-Sub Convert_XLS_To_XLSX_NewFolder()
+Sub Convert_XLS_To_XLSX_Pro()
 
     Dim wb As Workbook
     Dim SourcePath As String
@@ -6,22 +6,31 @@ Sub Convert_XLS_To_XLSX_NewFolder()
     Dim myFile As String
     Dim FldrPicker As FileDialog
     Dim fso As Object
+    Dim fileCount As Long
+    Dim startTime As Double
     
-    'T?i uu t?c d?
-    Application.ScreenUpdating = False
-    Application.EnableEvents = False
-    Application.Calculation = xlCalculationManual
+    startTime = Timer
+    
+    ' TẮT TOÀN BỘ UPDATE
+    With Application
+        .ScreenUpdating = False
+        .EnableEvents = False
+        .DisplayAlerts = False
+        .Calculation = xlCalculationManual
+        .AskToUpdateLinks = False
+    End With
+    
+    On Error GoTo SafeExit
 
-    'Ch?n thu m?c ngu?n
+    ' Chọn thư mục
     Set FldrPicker = Application.FileDialog(msoFileDialogFolderPicker)
-
     With FldrPicker
-        .Title = "Ch?n thu m?c ch?a file .XLS"
-        If .Show <> -1 Then GoTo ResetSettings
+        .Title = "Chọn thư mục chứa file .XLS"
+        If .Show <> -1 Then GoTo SafeExit
         SourcePath = .SelectedItems(1) & "\"
     End With
 
-    'T?o folder dích
+    ' Tạo folder đích
     TargetPath = SourcePath & "Converted_XLSX\"
     
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -29,32 +38,56 @@ Sub Convert_XLS_To_XLSX_NewFolder()
         fso.CreateFolder TargetPath
     End If
 
-    'L?y file .xls
+    ' Lấy file .xls
     myFile = Dir(SourcePath & "*.xls")
 
     Do While myFile <> ""
-        
-        'Ch? x? lý file .xls (lo?i tr? .xlsx)
+    
         If LCase(Right(myFile, 4)) = ".xls" Then
             
-            Set wb = Workbooks.Open(SourcePath & myFile)
+            On Error Resume Next
             
-            wb.SaveAs Filename:=TargetPath & _
-            Left(myFile, InStrRev(myFile, ".") - 1) & ".xlsx", _
-            FileFormat:=xlOpenXMLWorkbook
+            Set wb = Workbooks.Open( _
+                Filename:=SourcePath & myFile, _
+                UpdateLinks:=0, _
+                ReadOnly:=True, _
+                AddToMru:=False)
             
-            wb.Close SaveChanges:=False
+            If Err.Number = 0 Then
+                
+                wb.SaveAs _
+                    Filename:=TargetPath & _
+                    Left(myFile, InStrRev(myFile, ".") - 1) & ".xlsx", _
+                    FileFormat:=xlOpenXMLWorkbook
+                
+                wb.Close SaveChanges:=False
+                fileCount = fileCount + 1
+                
+            End If
             
+            Err.Clear
+            On Error GoTo SafeExit
+            
+            Set wb = Nothing
         End If
         
         myFile = Dir
     Loop
 
-    MsgBox "Ðã convert xong toàn b? file!", vbInformation
+    MsgBox "Đã convert: " & fileCount & " file." & vbCrLf & _
+           "Thời gian: " & Format(Timer - startTime, "0.00") & " giây", _
+           vbInformation
 
-ResetSettings:
-    Application.EnableEvents = True
-    Application.Calculation = xlCalculationAutomatic
-    Application.ScreenUpdating = True
+SafeExit:
+
+    ' BẬT LẠI TOÀN BỘ
+    With Application
+        .ScreenUpdating = True
+        .EnableEvents = True
+        .DisplayAlerts = True
+        .Calculation = xlCalculationAutomatic
+        .AskToUpdateLinks = True
+        .StatusBar = False
+    End With
 
 End Sub
