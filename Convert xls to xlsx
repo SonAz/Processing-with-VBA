@@ -1,0 +1,60 @@
+Sub Convert_XLS_To_XLSX_NewFolder()
+
+    Dim wb As Workbook
+    Dim SourcePath As String
+    Dim TargetPath As String
+    Dim myFile As String
+    Dim FldrPicker As FileDialog
+    Dim fso As Object
+    
+    'T?i uu t?c d?
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.Calculation = xlCalculationManual
+
+    'Ch?n thu m?c ngu?n
+    Set FldrPicker = Application.FileDialog(msoFileDialogFolderPicker)
+
+    With FldrPicker
+        .Title = "Ch?n thu m?c ch?a file .XLS"
+        If .Show <> -1 Then GoTo ResetSettings
+        SourcePath = .SelectedItems(1) & "\"
+    End With
+
+    'T?o folder dích
+    TargetPath = SourcePath & "Converted_XLSX\"
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(TargetPath) Then
+        fso.CreateFolder TargetPath
+    End If
+
+    'L?y file .xls
+    myFile = Dir(SourcePath & "*.xls")
+
+    Do While myFile <> ""
+        
+        'Ch? x? lý file .xls (lo?i tr? .xlsx)
+        If LCase(Right(myFile, 4)) = ".xls" Then
+            
+            Set wb = Workbooks.Open(SourcePath & myFile)
+            
+            wb.SaveAs Filename:=TargetPath & _
+            Left(myFile, InStrRev(myFile, ".") - 1) & ".xlsx", _
+            FileFormat:=xlOpenXMLWorkbook
+            
+            wb.Close SaveChanges:=False
+            
+        End If
+        
+        myFile = Dir
+    Loop
+
+    MsgBox "Ðã convert xong toàn b? file!", vbInformation
+
+ResetSettings:
+    Application.EnableEvents = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+
+End Sub
