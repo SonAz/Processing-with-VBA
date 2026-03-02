@@ -1,68 +1,66 @@
-Sub Convert_XLS_To_XLSX_Pro()
+Sub Convert_XLS_To_XLSX_ReadAllXLS()
 
     Dim wb As Workbook
     Dim SourcePath As String
     Dim TargetPath As String
-    Dim myFile As String
     Dim FldrPicker As FileDialog
     Dim fso As Object
+    Dim folderObj As Object
+    Dim fileObj As Object
     Dim fileCount As Long
-    Dim startTime As Double
     
-    startTime = Timer
-    
-    ' TẮT TOÀN BỘ UPDATE
+    ' T?t update d? ch?y nhanh
     With Application
         .ScreenUpdating = False
         .EnableEvents = False
         .DisplayAlerts = False
         .Calculation = xlCalculationManual
-        .AskToUpdateLinks = False
     End With
     
     On Error GoTo SafeExit
 
-    ' Chọn thư mục
+    ' Ch?n folder
     Set FldrPicker = Application.FileDialog(msoFileDialogFolderPicker)
     With FldrPicker
-        .Title = "Chọn thư mục chứa file .XLS"
+        .Title = "Ch?n thu m?c ch?a file .XLS"
         If .Show <> -1 Then GoTo SafeExit
-        SourcePath = .SelectedItems(1) & "\"
+        SourcePath = .SelectedItems(1)
     End With
 
-    ' Tạo folder đích
-    TargetPath = SourcePath & "Converted_XLSX\"
+    ' T?o folder dích
+    TargetPath = SourcePath & "\Converted_XLSX"
     
     Set fso = CreateObject("Scripting.FileSystemObject")
+    
     If Not fso.FolderExists(TargetPath) Then
         fso.CreateFolder TargetPath
     End If
 
-    ' Lấy file .xls
-    myFile = Dir(SourcePath & "*.xls")
+    ' L?y object folder
+    Set folderObj = fso.GetFolder(SourcePath)
 
-    Do While myFile <> ""
-    
-        If LCase(Right(myFile, 4)) = ".xls" Then
+    ' Duy?t t?ng file trong folder
+    For Each fileObj In folderObj.Files
+        
+        ' Ch? x? lý file có duôi .xls
+        If LCase(fso.GetExtensionName(fileObj.Name)) = "xls" Then
             
             On Error Resume Next
             
             Set wb = Workbooks.Open( _
-                Filename:=SourcePath & myFile, _
+                Filename:=fileObj.Path, _
                 UpdateLinks:=0, _
-                ReadOnly:=True, _
-                AddToMru:=False)
+                ReadOnly:=True)
             
             If Err.Number = 0 Then
                 
                 wb.SaveAs _
-                    Filename:=TargetPath & _
-                    Left(myFile, InStrRev(myFile, ".") - 1) & ".xlsx", _
+                    Filename:=TargetPath & "\" & _
+                    fso.GetBaseName(fileObj.Name) & ".xlsx", _
                     FileFormat:=xlOpenXMLWorkbook
                 
                 wb.Close SaveChanges:=False
                 fileCount = fileCount + 1
-                
             End If
             
             Err.Clear
@@ -71,23 +69,18 @@ Sub Convert_XLS_To_XLSX_Pro()
             Set wb = Nothing
         End If
         
-        myFile = Dir
-    Loop
+    Next fileObj
 
-    MsgBox "Đã convert: " & fileCount & " file." & vbCrLf & _
-           "Thời gian: " & Format(Timer - startTime, "0.00") & " giây", _
-           vbInformation
+    MsgBox "Ðã convert: " & fileCount & " file .xls", vbInformation
 
 SafeExit:
-
-    ' BẬT LẠI TOÀN BỘ
+    
+    ' B?t l?i Excel
     With Application
         .ScreenUpdating = True
         .EnableEvents = True
         .DisplayAlerts = True
         .Calculation = xlCalculationAutomatic
-        .AskToUpdateLinks = True
-        .StatusBar = False
     End With
 
 End Sub
