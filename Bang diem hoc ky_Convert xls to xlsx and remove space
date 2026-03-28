@@ -1,0 +1,106 @@
+Sub Convert_XLS_To_XLSX_CleanData()
+
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim SourcePath As String
+    Dim TargetPath As String
+    Dim FldrPicker As FileDialog
+    Dim fso As Object
+    Dim folderObj As Object
+    Dim fileObj As Object
+    Dim fileCount As Long
+    Dim rng As Range
+
+    ' Tối ưu tốc độ
+    With Application
+        .ScreenUpdating = False
+        .EnableEvents = False
+        .DisplayAlerts = False
+        .Calculation = xlCalculationManual
+    End With
+
+    On Error GoTo SafeExit
+
+    ' Chọn thư mục chứa file XLS
+    Set FldrPicker = Application.FileDialog(msoFileDialogFolderPicker)
+    With FldrPicker
+        .Title = "Chọn thư mục chứa file .XLS"
+        If .Show <> -1 Then GoTo SafeExit
+        SourcePath = .SelectedItems(1)
+    End With
+
+    ' Tạo thư mục đích
+    TargetPath = SourcePath & "\Converted_XLSX"
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(TargetPath) Then
+        fso.CreateFolder TargetPath
+    End If
+
+    ' Lấy folder
+    Set folderObj = fso.GetFolder(SourcePath)
+
+    ' Duyệt từng file
+    For Each fileObj In folderObj.Files
+        
+        If LCase(fso.GetExtensionName(fileObj.Name)) = "xls" Then
+            
+            On Error Resume Next
+            
+            Set wb = Workbooks.Open( _
+                Filename:=fileObj.Path, _
+                UpdateLinks:=0, _
+                ReadOnly:=False)
+            
+            If Err.Number = 0 Then
+                
+                ' ===== CLEAN DATA =====
+                For Each ws In wb.Worksheets
+                    
+                    Set rng = ws.UsedRange
+                    
+                    If Not rng Is Nothing Then
+                        
+                        ' Xóa ký tự khoảng trắng đặc biệt (NBSP)
+                        rng.Replace What:=Chr(160), Replacement:=" ", LookAt:=xlPart
+                        
+                        ' Trim toàn bộ dữ liệu (xóa space đầu/cuối + dư giữa)
+                        rng.Value = ws.Evaluate("IF(" & rng.Address & "<>"""",TRIM(" & rng.Address & "),"""")")
+                    
+                    End If
+                    
+                    Set rng = Nothing
+                    
+                Next ws
+                ' ===== END CLEAN =====
+
+                ' Lưu thành XLSX
+                wb.SaveAs _
+                    Filename:=TargetPath & "\" & fso.GetBaseName(fileObj.Name) & ".xlsx", _
+                    FileFormat:=xlOpenXMLWorkbook
+                
+                wb.Close SaveChanges:=False
+                fileCount = fileCount + 1
+            End If
+
+            Err.Clear
+            On Error GoTo SafeExit
+            Set wb = Nothing
+            
+        End If
+        
+    Next fileObj
+
+    MsgBox "Đã convert & clean: " & fileCount & " file .xls", vbInformation
+
+SafeExit:
+
+    ' Khôi phục Excel
+    With Application
+        .ScreenUpdating = True
+        .EnableEvents = True
+        .DisplayAlerts = True
+        .Calculation = xlCalculationAutomatic
+    End With
+
+End Sub
