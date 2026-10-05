@@ -1,21 +1,16 @@
-Các bước thực hiện như sau:
-
-Bước 1: Chuyển các file excel cần gộp vào chung một thư mục.
-Bước 2: Mở file excel sẽ nhận dữ liệu của các file còn lại.
-Bước 3: Vào “Developer” => chọn “Visual Basic”.
-Bước 4: Tại cửa sổ “Microsoft Visual Basic for applications” =>Chọn “Insert” => chọn “Module”.
-Bước 5: Thay đổi đường link thư mục chứa các file cần gộp ở bước 1 vào phần Path của đoạn mã sau:
-Sub GetSheets()
-Path = “………..”
-Filename = Dir(Path & “*.xls”)
-Do While Filename <> “”
-Workbooks.Open Filename:=Path & Filename, ReadOnly:=True
-For Each Sheet In ActiveWorkbook.Sheets
-Sheet.Copy After:=ThisWorkbook.Sheets(1)
-Next Sheet
-Workbooks(Filename).Close
-Filename = Dir()
-Loop
+Sub GopTatCaSheet()
+    Dim Sh As Worksheet, TgtSh As Worksheet
+    Dim NextRow As Long
+    
+    Set TgtSh = Worksheets.Add(Before:=Worksheets(1))
+    TgtSh.Name = "Tonghop"
+    NextRow = 1
+    
+    For Each Sh In Worksheets
+        If Sh.Name <> "Tonghop" Then
+            Sh.UsedRange.Copy Destination:=TgtSh.Cells(NextRow, 1)
+            NextRow = TgtSh.UsedRange.Rows.Count + 1
+        End If
+    Next Sh
+    MsgBox "Đã gộp xong các sheet!"
 End Sub
-Bước 6: Copy đoạn mã ở bước 5 và dán vào “Module”. Lúc này, các file trong thư mục đã tạo ở ước 1 sẽ gộp thành 1 file duy nhất.
-Sử dụng VBA để gộp nhiều file excel thành 1 file
